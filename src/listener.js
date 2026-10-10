@@ -71,7 +71,8 @@ async function handle(raw) {
 }
 
 async function buscar(count) {
-  const msgs = await sock.newsletterFetchMessages(status.channelJid, count, 0, 0);
+  // Sem since/after: passar since=0 fazia a query de newsletter dar "Timed Out".
+  const msgs = await sock.newsletterFetchMessages(status.channelJid, count);
   const lista = Array.isArray(msgs) ? msgs : [];
   for (const m of lista) await handle(m);
   return lista.length;
@@ -110,10 +111,13 @@ async function onConnected() {
       log.info({ n }, 'backfill concluído');
       backfillFeito = true;
     } catch (e) {
-      log.warn({ e: e.message }, 'backfill falhou');
+      log.warn({ e: e.message }, 'backfill falhou (o poll inicial retenta em ~1 min)');
     }
   }
   if (!pollTimer) pollTimer = setInterval(pollar, cfg.POLL_MINUTES * 60 * 1000);
+  // Poll inicial logo após conectar: catch-up rápido e retry do backfill se falhou,
+  // sem esperar o intervalo cheio.
+  setTimeout(pollar, 60 * 1000);
 }
 
 function limparAuth() {
