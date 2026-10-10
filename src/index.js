@@ -13,6 +13,15 @@ const listener = require('./listener');
 const app = require('./server');
 const { checarAlertas } = require('./alerts');
 
+// CHANNEL_INVITE_CODE é obrigatório — sem ele não há canal a monitorar.
+if (!cfg.CHANNEL_INVITE_CODE) {
+  log.error(
+    'CHANNEL_INVITE_CODE não configurado. Defina a variável com o código após ' +
+      'whatsapp.com/channel/ (ex.: 0029Vxxxxxxxxxxxx) e reinicie o serviço.'
+  );
+  process.exit(1);
+}
+
 if (!cfg.ML_OFERTAS_URL) log.warn('ML_OFERTAS_URL vazio — as mensagens não serão encaminhadas.');
 
 listener.start().catch((e) => log.error({ e: e.message }, 'falha ao iniciar o Baileys'));

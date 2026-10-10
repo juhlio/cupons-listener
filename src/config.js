@@ -6,8 +6,9 @@ const path = require('path');
 module.exports = {
   PORT: parseInt(process.env.PORT || '3334', 10),
   API_KEY: process.env.API_KEY || '',
-  // Código de convite do canal (parte após whatsapp.com/channel/).
-  CHANNEL_INVITE_CODE: process.env.CHANNEL_INVITE_CODE || '0029VaXBWV24IBhJJ0T1023C',
+  // Código de convite do canal (parte após whatsapp.com/channel/). Obrigatório:
+  // sem default — o serviço falha no boot se não estiver configurado.
+  CHANNEL_INVITE_CODE: process.env.CHANNEL_INVITE_CODE || '',
   // URL do ml-ofertas-service (sem barra final).
   ML_OFERTAS_URL: (process.env.ML_OFERTAS_URL || '').replace(/\/$/, ''),
   POLL_MINUTES: parseInt(process.env.POLL_MINUTES || '15', 10),
