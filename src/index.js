@@ -10,6 +10,7 @@ if (fs.existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 const cfg = require('./config');
 const log = require('./logger');
 const listener = require('./listener');
+const telegram = require('./telegram');
 const app = require('./server');
 const { checarAlertas } = require('./alerts');
 
@@ -25,6 +26,12 @@ if (!cfg.CHANNEL_INVITE_CODE) {
 if (!cfg.ML_OFERTAS_URL) log.warn('ML_OFERTAS_URL vazio — as mensagens não serão encaminhadas.');
 
 listener.start().catch((e) => log.error({ e: e.message }, 'falha ao iniciar o Baileys'));
-setInterval(() => checarAlertas(listener.status), 5 * 60 * 1000).unref();
+// Telegram é redundância: se falhar, o WhatsApp segue normalmente.
+telegram.start().catch((e) => log.error({ e: e.message }, 'falha ao iniciar o Telegram'));
+// Um alerta por canal: WhatsApp e Telegram têm estado de conexão e de silêncio próprios.
+setInterval(() => {
+  checarAlertas('WhatsApp', listener.status);
+  if (telegram.habilitado()) checarAlertas('Telegram', telegram.tgStatus);
+}, 5 * 60 * 1000).unref();
 
 app.listen(cfg.PORT, () => log.info({ porta: cfg.PORT }, 'cupons-listener ouvindo'));

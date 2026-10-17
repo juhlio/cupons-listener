@@ -5,6 +5,7 @@ const express = require('express');
 const QRCode = require('qrcode');
 const cfg = require('./config');
 const { status } = require('./listener');
+const { tgStatus } = require('./telegram');
 
 const app = express();
 
@@ -22,6 +23,11 @@ app.get('/health', (req, res) => {
     needsPair: status.needsPair,
     lastPollAt: status.lastPollAt ? new Date(status.lastPollAt).toISOString() : null,
     lastMessageAt: status.lastMessageAt ? new Date(status.lastMessageAt).toISOString() : null,
+    telegram: {
+      connected: tgStatus.connected,
+      lastPollAt: tgStatus.lastPollAt ? new Date(tgStatus.lastPollAt).toISOString() : null,
+      lastMessageAt: tgStatus.lastMessageAt ? new Date(tgStatus.lastMessageAt).toISOString() : null,
+    },
   });
 });
 

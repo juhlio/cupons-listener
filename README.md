@@ -34,7 +34,12 @@ segue o canal. Isso minimiza o risco de ban.
 | `ML_OFERTAS_URL` | URL do ml-ofertas-service (sem barra final) |
 | `POLL_MINUTES` | intervalo do polling (default 15) |
 | `ALERT_WEBHOOK_URL` | (opcional) alertas de desconexão/silêncio |
+| `TG_API_ID` / `TG_API_HASH` | credenciais de app do Telegram (my.telegram.org) |
+| `TG_SESSION` | sessão da conta dedicada do Telegram (gerada por `scripts/tg-login.js`) |
+| `TG_CHANNEL` | `+hash` do convite privado, ou `@username` se o canal for público |
 | `LOG_LEVEL` | nível do pino (default info) |
+
+O Telegram é **opcional**: sem `TG_SESSION` ele fica desligado e só o WhatsApp roda.
 
 ## Endpoints
 
@@ -49,6 +54,31 @@ segue o canal. Isso minimiza o risco de ban.
 3. **Volume** em `/app/auth_state` (sessão) — sem ele, perde o pareamento a cada deploy.
    Opcionalmente um volume em `/app/data` (dedup).
 4. Domínio para acessar `/qr` e `/health`.
+
+## Telegram (redundância)
+
+Além do WhatsApp, o serviço lê o mesmo canal no Telegram via MTProto (GramJS), com
+uma conta dedicada que já está dentro do canal. Só lê, nunca envia.
+
+1. Crie credenciais em https://my.telegram.org (API development tools).
+2. Gere a sessão **uma vez**, na sua máquina:
+   `TG_API_ID=... TG_API_HASH=... node scripts/tg-login.js`
+3. Cole `TG_API_ID`, `TG_API_HASH`, `TG_SESSION` e `TG_CHANNEL` no Easypanel.
+4. O `/health` passa a mostrar o bloco `telegram`.
+
+Dedup entre os dois canais, independente de quem trouxe primeiro:
+1. `msg_id` da fonte (prefixo `tg:` no Telegram);
+2. impressão digital do texto (sem caixa, acento, emoji e URLs);
+3. código do cupom (`CÓDIGO 👉 NN% OFF`): a mensagem só é ignorada se **todos** os
+   códigos dela já foram enviados. Um código novo na mesma mensagem faz ela passar.
+
+O ml-ofertas também guarda um cupom por código, então mesmo um reenvio chegaria
+uma vez só no grupo.
+
+Alertas (`ALERT_WEBHOOK_URL`): um estado por canal. Cada alerta traz o campo `canal`
+(`WhatsApp` ou `Telegram`) e avisa uma vez por evento: desconectado há mais de 30 min,
+ou 24h sem mensagem nova do canal. O `/health` mostra o bloco `telegram`, com
+`connected`, `lastPollAt` e `lastMessageAt`.
 
 ## Parear (1ª vez)
 

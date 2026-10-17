@@ -4,7 +4,7 @@
 // (markOnlineOnConnect: false; o número já segue o canal).
 //
 // Captura as mensagens do canal por polling (primário) + evento em tempo real
-// (secundário) e encaminha pro ml-ofertas-service. Dedup por msg_id.
+// (secundário) e encaminha pro ml-ofertas-service via pipeline (dedup).
 
 const fs = require('fs');
 const {
@@ -16,8 +16,7 @@ const {
 const QRCode = require('qrcode');
 const cfg = require('./config');
 const log = require('./logger');
-const dedup = require('./dedup');
-const { enviar } = require('./forward');
+const { processar } = require('./pipeline');
 
 // Estado observável (lido pelo /health e /qr).
 const status = {
@@ -61,13 +60,11 @@ function normalizar(raw) {
 async function handle(raw) {
   const { id, timestamp, texto } = normalizar(raw);
   if (!id || !texto) return;
-  if (dedup.has(id)) return;
-  const ok = await enviar({ msg_id: id, timestamp, texto });
-  if (ok) {
-    dedup.add(id);
-    status.lastMessageAt = Date.now();
-    log.info({ id }, 'mensagem do canal encaminhada');
-  }
+  // lastMessageAt = data da mensagem do canal (não o envio), pra o alerta de silêncio
+  // não ser mascarado pelo polling, que relê mensagens antigas.
+  const quando = Date.parse(timestamp);
+  if (quando > (status.lastMessageAt || 0)) status.lastMessageAt = quando;
+  await processar({ msg_id: id, timestamp, texto, fonte: 'whatsapp' });
 }
 
 async function buscar(count) {
