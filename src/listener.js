@@ -77,11 +77,14 @@ async function buscar(count) {
 
 async function pollar() {
   if (!sock || !status.channelJid) return;
+  const inicio = Date.now();
   try {
-    await buscar(20);
+    const n = await buscar(20);
     status.lastPollAt = Date.now();
+    // Registra cada poll: lista vazia (canal quieto) e timeout (falha) ficam distinguíveis.
+    log.info({ n, ms: Date.now() - inicio }, 'whatsapp: poll ok');
   } catch (e) {
-    log.warn({ e: e.message }, 'polling falhou');
+    log.warn({ e: e.message, ms: Date.now() - inicio }, 'polling falhou');
   }
 }
 
