@@ -118,8 +118,9 @@ async function iniciar() {
 
   client.addEventHandler(
     (event) => tratar(event.message).catch((e) => log.warn({ e: e.message }, 'telegram: falha ao tratar msg')),
-    // O NewMessage precisa do InputPeer, não da entidade crua (senão o update derruba o processo).
-    new NewMessage({ chats: [utils.getInputPeer(entity)] })
+    // O NewMessage aceita o id do peer (-100…), não a entidade: o construtor converte
+    // cada item com toString(), e um objeto viraria "[object Object]".
+    new NewMessage({ chats: [utils.getPeerId(entity)] })
   );
 
   try {
