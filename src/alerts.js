@@ -28,7 +28,9 @@ async function enviarAlerta(canal, motivo) {
 
 // status: { connected, lastMessageAt } (ms). Sem lastMessageAt ainda, o silêncio
 // conta a partir do boot, pra um canal que nunca chegou a funcionar também avisar.
-function checarAlertas(canal, status) {
+// opts.silencio: false desliga o alerta de silêncio (usado no WhatsApp, cuja fonte
+// de texto hoje não responde, então o aviso não tem ação possível).
+function checarAlertas(canal, status, opts = {}) {
   const now = Date.now();
   if (!estados.has(canal)) estados.set(canal, { desconectado: false, desconectadoDesde: null, silencio: false });
   const e = estados.get(canal);
@@ -44,6 +46,7 @@ function checarAlertas(canal, status) {
     }
   }
 
+  if (opts.silencio === false) return;
   const ref = status.lastMessageAt || iniciado;
   if (now - ref > SILENCIO_MS) {
     if (!e.silencio) {

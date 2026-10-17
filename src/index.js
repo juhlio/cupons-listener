@@ -36,7 +36,8 @@ listener.start().catch((e) => log.error({ e: e.message }, 'falha ao iniciar o Ba
 telegram.start().catch((e) => log.error({ e: e.message }, 'falha ao iniciar o Telegram'));
 // Um alerta por canal: WhatsApp e Telegram têm estado de conexão e de silêncio próprios.
 setInterval(() => {
-  checarAlertas('WhatsApp', listener.status);
+  // Silêncio do WhatsApp desligado: a leitura do canal está bloqueada (ver README).
+  checarAlertas('WhatsApp', listener.status, { silencio: false });
   if (telegram.habilitado()) checarAlertas('Telegram', telegram.tgStatus);
 }, 5 * 60 * 1000).unref();
 

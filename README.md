@@ -93,6 +93,14 @@ Se o `/health` mostrar `needsPair: true` (sessão revogada) ou o login for perdi
 o serviço limpa a sessão e volta a servir o QR — basta repetir o passo acima. Para
 forçar, apague o volume `/app/auth_state` e reinicie.
 
+## Status das fontes (atualizado em 17/10/2026)
+
+- **Telegram: fonte principal.** Lê o canal pela conta dedicada (MTProto), em tempo real e com catch-up a cada `POLL_MINUTES`.
+- **WhatsApp: fora do ar para a captura de texto.** A conexão e a leitura do canal (`newsletterMetadata`) funcionam, mas a consulta de mensagens (`newsletterFetchMessages`) não recebe resposta do servidor: dá `Timed Out` em 60 s. O mesmo acontece com um pareamento novo, então não é a sessão. Não há consulta alternativa no Baileys 6.7.24 nem na RC 7.0. As notificações ao vivo do canal chegam sem texto (tag `live_updates`).
+  - O último cupom entregue pelo WhatsApp foi em 16/10 às 19:11 BRT. Não dá para afirmar se a falha começou nesse dia.
+  - Cada poll registra `whatsapp: poll ok` (com `n` e `ms`) ou `polling falhou`, para acompanhar se isso muda.
+  - O alerta de silêncio do WhatsApp está desligado (`checarAlertas(..., { silencio: false })`), porque não há ação possível enquanto a fonte estiver bloqueada. O alerta de desconexão continua ativo.
+
 ## Riscos
 
 - **Lib não oficial** (Baileys) — versão **fixada** (`@whiskeysockets/baileys@6.7.24`),
