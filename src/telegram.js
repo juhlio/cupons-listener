@@ -9,6 +9,7 @@
 const { TelegramClient, Api } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const { NewMessage } = require('telegram/events');
+const utils = require('telegram/Utils');
 const cfg = require('./config');
 const log = require('./logger');
 const { processar } = require('./pipeline');
@@ -117,7 +118,8 @@ async function iniciar() {
 
   client.addEventHandler(
     (event) => tratar(event.message).catch((e) => log.warn({ e: e.message }, 'telegram: falha ao tratar msg')),
-    new NewMessage({ chats: [entity] })
+    // O NewMessage precisa do InputPeer, não da entidade crua (senão o update derruba o processo).
+    new NewMessage({ chats: [utils.getInputPeer(entity)] })
   );
 
   try {

@@ -7,6 +7,12 @@ const path = require('path');
 const ENV_FILE = path.join(__dirname, '..', '.env');
 if (fs.existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 
+// Um erro num update do Telegram não pode derrubar o serviço (e o WhatsApp junto):
+// registra e segue. Só nas rejeições não tratadas; exceções síncronas seguem fatais.
+process.on('unhandledRejection', (e) => {
+  require('./logger').error({ e: e && e.message, stack: e && e.stack }, 'rejeição não tratada');
+});
+
 const cfg = require('./config');
 const log = require('./logger');
 const listener = require('./listener');
