@@ -11,7 +11,7 @@
 
 const dedup = require('./dedup');
 const forward = require('./forward');
-const { extrairCodigos } = require('./codigos');
+const { extrairCodigos, extrairValidade } = require('./codigos');
 const log = require('./logger');
 
 let fila = Promise.resolve();
@@ -28,14 +28,19 @@ async function processarAgora({ msg_id, timestamp, texto, fonte }) {
 
   const fp = dedup.fingerprint(texto);
   const codigos = extrairCodigos(texto);
-  const chavesCodigo = codigos.map((c) => 'cod:' + c);
+  // Código + validade: o mesmo código volta todo dia com validade nova, e isso é cupom novo.
+  const validade = extrairValidade(texto);
+  const chavesCodigo = codigos.map((c) => 'cod:' + c + (validade ? '@' + validade : ''));
 
   const jaVista =
     dedup.has(msg_id) ||
     (fp && dedup.has(fp)) ||
     (chavesCodigo.length > 0 && chavesCodigo.every((k) => dedup.has(k)));
   if (jaVista) {
-    log.debug({ msg_id, fonte, codigos }, 'duplicada, ignorada');
+    const motivo = dedup.has(msg_id) ? 'msg_id' : fp && dedup.has(fp) ? 'texto' : 'código+validade';
+    // Marca o msg_id também: a mensagem não é reavaliada nos próximos polls.
+    dedup.addMany([msg_id]);
+    log.info({ msg_id, fonte, codigos, validade, motivo }, 'duplicada, ignorada');
     return 'duplicada';
   }
 

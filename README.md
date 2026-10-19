@@ -69,8 +69,10 @@ uma conta dedicada que já está dentro do canal. Só lê, nunca envia.
 Dedup entre os dois canais, independente de quem trouxe primeiro:
 1. `msg_id` da fonte (prefixo `tg:` no Telegram);
 2. impressão digital do texto (sem caixa, acento, emoji e URLs);
-3. código do cupom (`CÓDIGO 👉 NN% OFF`): a mensagem só é ignorada se **todos** os
-   códigos dela já foram enviados. Um código novo na mesma mensagem faz ela passar.
+3. código do cupom (`CÓDIGO 👉 NN% OFF`) + validade (`Válido somente em DD.MM`): a
+   mensagem só é ignorada se **todos** os códigos dela já foram enviados **com a mesma
+   validade**. O canal reaproveita o mesmo código todo dia com validade nova, e isso é
+   cupom novo. Um código novo na mesma mensagem faz ela passar.
 
 O ml-ofertas também guarda um cupom por código, então mesmo um reenvio chegaria
 uma vez só no grupo.

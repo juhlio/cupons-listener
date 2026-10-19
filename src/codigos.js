@@ -26,4 +26,13 @@ function extrairCodigos(texto) {
   return [...achados];
 }
 
-module.exports = { extrairCodigos };
+// Validade do cupom ("Válido somente em 18.10"), como dd.mm. O canal reaproveita o
+// mesmo código todo dia com validade nova, então a validade faz parte da chave de dedup.
+const VALIDADE = /v[áa]lid[oa]s?\s+(?:somente\s+)?(?:em|at[ée])\s+(\d{1,2})[.\/](\d{1,2})/i;
+
+function extrairValidade(texto) {
+  const m = String(texto || '').match(VALIDADE);
+  return m ? `${m[1].padStart(2, '0')}.${m[2].padStart(2, '0')}` : null;
+}
+
+module.exports = { extrairCodigos, extrairValidade };

@@ -77,6 +77,26 @@ test('mesmo cupom com redação diferente em outro canal não é reenviado', asy
   assert.equal(enviados.length, 1);
 });
 
+test('mesmo código com validade nova é encaminhado de novo (canal reaproveita o código)', async () => {
+  const ontem = 'MELIHOJE 👉 10% OFF\nTecnologia | Válido somente em 17.10, em até 90% da categoria.';
+  const hoje = 'MELIHOJE 👉 10% OFF\nTecnologia | Válido somente em 18.10, em até 90% da categoria.';
+  assert.equal(await processar({ msg_id: 'tg:20', timestamp: 't', texto: ontem, fonte: 'telegram' }), 'enviada');
+  assert.equal(await processar({ msg_id: 'tg:21', timestamp: 't', texto: hoje, fonte: 'telegram' }), 'enviada');
+  assert.equal(enviados.length, 2);
+});
+
+test('mesmo código com a mesma validade em outro canal continua sendo ignorado', async () => {
+  await processar({ msg_id: 'tg:22', timestamp: 't', texto: 'MELIHOJE 👉 10% OFF\nVálido somente em 18.10', fonte: 'telegram' });
+  const r = await processar({
+    msg_id: 'WA22',
+    timestamp: 't',
+    texto: 'Corre! MELIHOJE 👉 10% OFF, válido até 18.10 só isso',
+    fonte: 'whatsapp',
+  });
+  assert.equal(r, 'duplicada');
+  assert.equal(enviados.length, 1);
+});
+
 test('mensagem com um código novo é encaminhada mesmo se outro código já foi visto', async () => {
   await processar({ msg_id: 'tg:3', timestamp: 't', texto: 'ML10 👉 10% OFF', fonte: 'telegram' });
   const r = await processar({
