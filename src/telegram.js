@@ -78,11 +78,19 @@ async function catchUp(limit) {
 }
 
 async function pollar() {
+  await buscarAgora(20);
+}
+
+// Devolve { ok, n | erro }. Usado pelo timer e pelo POST /poll (busca manual).
+async function buscarAgora(limit) {
+  if (!client || !entity) return { ok: false, erro: 'Telegram não conectado' };
   try {
-    await catchUp(20);
+    const n = await catchUp(limit);
     tgStatus.lastPollAt = Date.now();
+    return { ok: true, n };
   } catch (e) {
     log.warn({ e: e.message }, 'telegram: catch-up falhou');
+    return { ok: false, erro: e.message };
   }
 }
 
@@ -152,4 +160,4 @@ async function start() {
   }
 }
 
-module.exports = { start, tgStatus, habilitado };
+module.exports = { start, tgStatus, habilitado, buscarAgora };

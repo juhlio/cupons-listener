@@ -4,8 +4,8 @@
 const express = require('express');
 const QRCode = require('qrcode');
 const cfg = require('./config');
-const { status } = require('./listener');
-const { tgStatus } = require('./telegram');
+const { status, pollar } = require('./listener');
+const { tgStatus, buscarAgora } = require('./telegram');
 
 const app = express();
 
@@ -42,6 +42,16 @@ app.get('/qr', auth, async (req, res) => {
   } catch (e) {
     res.status(500).type('text').send(e.message);
   }
+});
+
+// Busca manual: relê o canal agora, sem esperar o intervalo. ?limite=N (1 a 100,
+// default 50) define quantas mensagens recentes olhar. Exige API_KEY (sem ela, o
+// endpoint fica fechado, ao contrário de /qr).
+app.post('/poll', auth, async (req, res) => {
+  if (!cfg.API_KEY) return res.status(503).json({ erro: 'defina API_KEY para usar /poll' });
+  const limite = Math.min(100, Math.max(1, parseInt(req.query.limite || '50', 10) || 50));
+  const [whatsapp, telegram] = await Promise.all([pollar(limite), buscarAgora(limite)]);
+  res.json({ limite, whatsapp, telegram });
 });
 
 module.exports = app;

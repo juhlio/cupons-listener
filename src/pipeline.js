@@ -11,6 +11,7 @@
 
 const dedup = require('./dedup');
 const forward = require('./forward');
+const { avisarCupom } = require('./notify');
 const { extrairCodigos, extrairValidade } = require('./codigos');
 const log = require('./logger');
 
@@ -50,6 +51,8 @@ async function processarAgora({ msg_id, timestamp, texto, fonte }) {
   // Só marca depois de encaminhar: se falhar, a próxima leitura tenta de novo.
   dedup.addMany([msg_id, fp, ...chavesCodigo]);
   log.info({ msg_id, fonte, codigos }, 'mensagem encaminhada');
+  // Sem await: o aviso não pode atrasar a fila de processamento.
+  avisarCupom({ msg_id, fonte, codigos, validade, texto });
   return 'enviada';
 }
 

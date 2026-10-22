@@ -34,6 +34,7 @@ segue o canal. Isso minimiza o risco de ban.
 | `ML_OFERTAS_URL` | URL do ml-ofertas-service (sem barra final) |
 | `POLL_MINUTES` | intervalo do polling (default 15) |
 | `ALERT_WEBHOOK_URL` | (opcional) alertas de desconexão/silêncio |
+| `CUPOM_WEBHOOK_URL` | (opcional) aviso a cada mensagem nova encaminhada ao ml-ofertas |
 | `TG_API_ID` / `TG_API_HASH` | credenciais de app do Telegram (my.telegram.org) |
 | `TG_SESSION` | sessão da conta dedicada do Telegram (gerada por `scripts/tg-login.js`) |
 | `TG_CHANNEL` | `+hash` do convite privado, ou `@username` se o canal for público |
@@ -44,6 +45,7 @@ O Telegram é **opcional**: sem `TG_SESSION` ele fica desligado e só o WhatsApp
 ## Endpoints
 
 - `GET /health` — status da conexão, JID do canal, último poll, última mensagem.
+- `POST /poll?limite=N` — busca manual: relê o WhatsApp e o Telegram agora (`limite` de 1 a 100, default 50). Exige `API_KEY` (header `x-api-key`); sem ela, responde 503.
 - `GET /qr?key=API_KEY` — enquanto não há sessão, devolve o **QR (PNG)** para parear;
   depois de conectado, responde `já conectado`. O QR também é logado em texto.
 
@@ -81,6 +83,12 @@ Alertas (`ALERT_WEBHOOK_URL`): um estado por canal. Cada alerta traz o campo `ca
 (`WhatsApp` ou `Telegram`) e avisa uma vez por evento: desconectado há mais de 30 min,
 ou 24h sem mensagem nova do canal. O `/health` mostra o bloco `telegram`, com
 `connected`, `lastPollAt` e `lastMessageAt`.
+
+## Aviso por cupom
+
+Com `CUPOM_WEBHOOK_URL` definido, cada mensagem encaminhada ao ml-ofertas dispara um POST
+com `{ evento: 'cupom', canal, msg_id, codigos, validade, texto, at }`. Duplicadas não
+avisam. A falha do webhook só gera log e não afeta o envio.
 
 ## Parear (1ª vez)
 

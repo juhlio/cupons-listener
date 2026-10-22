@@ -6,14 +6,19 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const fetchReal = globalThis.fetch; // o beforeEach troca o fetch; os testes de HTTP usam o real
 
 const SRC = path.join(__dirname, '..', 'src');
-const MODULOS = ['config', 'dedup', 'forward', 'pipeline', 'codigos', 'alerts'];
+const MODULOS = ['config', 'dedup', 'forward', 'pipeline', 'codigos', 'alerts', 'notify', 'listener', 'telegram', 'server'];
 let processar, extrairCodigos, checarAlertas, enviados, alertasHttp;
 
 function carregar(env = {}) {
   process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cupons-test-'));
   process.env.CHANNEL_INVITE_CODE = 'x';
+  // Zera o que os testes de alerta/cupom/API_KEY podem ter deixado no ambiente.
+  process.env.CUPOM_WEBHOOK_URL = '';
+  process.env.ALERT_WEBHOOK_URL = '';
+  process.env.API_KEY = '';
   Object.assign(process.env, env);
   for (const m of MODULOS) delete require.cache[require.resolve(path.join(SRC, m))];
   ({ processar } = require(path.join(SRC, 'pipeline')));
@@ -165,4 +170,56 @@ test('canal que nunca recebeu mensagem é avisado após 24h desde o boot', async
   checarAlertas('Telegram', { connected: true, lastMessageAt: null });
   await tick();
   assert.equal(alertasHttp.length, 0);
+});
+
+// ---- Aviso por cupom e busca manual ----
+
+test('aviso por cupom é disparado uma vez por mensagem encaminhada, não por duplicada', async () => {
+  carregar({ CUPOM_WEBHOOK_URL: 'http://cupom.test/hook' });
+  const texto = 'ML10 👉 10% OFF em tudo';
+  await processar({ msg_id: 'tg:50', timestamp: 't', texto, fonte: 'telegram' });
+  await processar({ msg_id: 'AAA50', timestamp: 't', texto, fonte: 'whatsapp' });
+  await new Promise((r) => setImmediate(r));
+  const avisos = alertasHttp.filter((b) => b.evento === 'cupom');
+  assert.equal(avisos.length, 1);
+  assert.deepEqual(avisos[0].codigos, ['ML10']);
+  assert.equal(avisos[0].canal, 'telegram');
+});
+
+test('sem CUPOM_WEBHOOK_URL nenhum aviso de cupom é enviado', async () => {
+  await processar({ msg_id: 'tg:51', timestamp: 't', texto: 'ML11 👉 10% OFF', fonte: 'telegram' });
+  await new Promise((r) => setImmediate(r));
+  assert.equal(alertasHttp.filter((b) => b.evento === 'cupom').length, 0);
+});
+
+test('POST /poll exige API_KEY e responde com o resultado de cada fonte', async () => {
+  carregar({ API_KEY: 'segredo' });
+  const app = require(path.join(SRC, 'server'));
+  const srv = app.listen(0);
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  try {
+    const semChave = await fetchReal(`${base}/poll`, { method: 'POST' });
+    assert.equal(semChave.status, 401);
+    const ok = await fetchReal(`${base}/poll?limite=500`, { method: 'POST', headers: { 'x-api-key': 'segredo' } });
+    const corpo = await ok.json();
+    assert.equal(ok.status, 200);
+    assert.equal(corpo.limite, 100);
+    // Sem conexão nos dois canais (teste não conecta de verdade), cada um reporta o erro.
+    assert.equal(corpo.whatsapp.ok, false);
+    assert.equal(corpo.telegram.ok, false);
+  } finally {
+    srv.close();
+  }
+});
+
+test('POST /poll sem API_KEY configurada fica fechado', async () => {
+  carregar({ API_KEY: '' });
+  const app = require(path.join(SRC, 'server'));
+  const srv = app.listen(0);
+  try {
+    const res = await fetchReal(`http://127.0.0.1:${srv.address().port}/poll`, { method: 'POST' });
+    assert.equal(res.status, 503);
+  } finally {
+    srv.close();
+  }
 });

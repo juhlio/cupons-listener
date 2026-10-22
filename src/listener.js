@@ -75,16 +75,19 @@ async function buscar(count) {
   return lista.length;
 }
 
-async function pollar() {
-  if (!sock || !status.channelJid) return;
+// Devolve { ok, n | erro }. Usado pelo timer e pelo POST /poll (busca manual).
+async function pollar(count = 20) {
+  if (!sock || !status.channelJid) return { ok: false, erro: 'WhatsApp não conectado' };
   const inicio = Date.now();
   try {
-    const n = await buscar(20);
+    const n = await buscar(count);
     status.lastPollAt = Date.now();
     // Registra cada poll: lista vazia (canal quieto) e timeout (falha) ficam distinguíveis.
     log.info({ n, ms: Date.now() - inicio }, 'whatsapp: poll ok');
+    return { ok: true, n };
   } catch (e) {
     log.warn({ e: e.message, ms: Date.now() - inicio }, 'polling falhou');
+    return { ok: false, erro: e.message };
   }
 }
 
@@ -202,4 +205,4 @@ async function start() {
   });
 }
 
-module.exports = { start, status };
+module.exports = { start, status, pollar };

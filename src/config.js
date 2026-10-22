@@ -13,6 +13,8 @@ module.exports = {
   ML_OFERTAS_URL: (process.env.ML_OFERTAS_URL || '').replace(/\/$/, ''),
   POLL_MINUTES: parseInt(process.env.POLL_MINUTES || '15', 10),
   ALERT_WEBHOOK_URL: process.env.ALERT_WEBHOOK_URL || '',
+  // (Opcional) Webhook chamado a cada mensagem nova encaminhada ao ml-ofertas.
+  CUPOM_WEBHOOK_URL: process.env.CUPOM_WEBHOOK_URL || '',
   // Telegram (redundância do WhatsApp). Opcional: sem TG_SESSION o canal fica
   // desligado. TG_CHANNEL: '+hash' (convite privado) ou '@username' (público).
   TG_API_ID: parseInt(process.env.TG_API_ID || '0', 10),
