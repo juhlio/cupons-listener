@@ -223,3 +223,24 @@ test('POST /poll sem API_KEY configurada fica fechado', async () => {
     srv.close();
   }
 });
+
+// ---- Resumo e regras do e-mail ----
+
+test('resumo do aviso cita os códigos, a validade e o canal', () => {
+  const { montarResumo } = require(path.join(SRC, 'notify'));
+  assert.equal(
+    montarResumo({ codigos: ['ML10', 'BELEZA15'], validade: '21.10', fonte: 'whatsapp' }),
+    'Novo cupom capturado: ML10, BELEZA15. Válido até 21.10. Pego no canal WhatsApp.'
+  );
+  assert.equal(
+    montarResumo({ codigos: [], validade: null, fonte: 'telegram' }),
+    'Novo cupom capturado: sem código identificado. Pego no canal Telegram.'
+  );
+});
+
+test('e-mail não é enviado sem SMTP configurado', async () => {
+  carregar({ CUPOM_WEBHOOK_URL: '', SMTP_HOST: '', AVISO_EMAIL_PARA: 'x@y.z' });
+  await processar({ msg_id: 'tg:60', timestamp: new Date().toISOString(), texto: 'ML12 👉 10% OFF', fonte: 'telegram' });
+  await new Promise((r) => setImmediate(r));
+  assert.equal(alertasHttp.length, 0);
+});

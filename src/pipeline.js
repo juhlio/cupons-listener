@@ -52,7 +52,7 @@ async function processarAgora({ msg_id, timestamp, texto, fonte }) {
   dedup.addMany([msg_id, fp, ...chavesCodigo]);
   log.info({ msg_id, fonte, codigos }, 'mensagem encaminhada');
   // Sem await: o aviso não pode atrasar a fila de processamento.
-  avisarCupom({ msg_id, fonte, codigos, validade, texto });
+  avisarCupom({ msg_id, fonte, codigos, validade, texto, timestamp });
   return 'enviada';
 }
 

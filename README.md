@@ -35,6 +35,9 @@ segue o canal. Isso minimiza o risco de ban.
 | `POLL_MINUTES` | intervalo do polling (default 15) |
 | `ALERT_WEBHOOK_URL` | (opcional) alertas de desconexão/silêncio |
 | `CUPOM_WEBHOOK_URL` | (opcional) aviso a cada mensagem nova encaminhada ao ml-ofertas |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | (opcional) servidor de e-mail para o aviso por cupom |
+| `AVISO_EMAIL_PARA` / `AVISO_EMAIL_DE` | destinatário e remetente do aviso (`AVISO_EMAIL_DE` default = `SMTP_USER`) |
+| `AVISO_MAX_IDADE_MIN` | (opcional) só avisa por e-mail mensagens com até N minutos (default 360) |
 | `TG_API_ID` / `TG_API_HASH` | credenciais de app do Telegram (my.telegram.org) |
 | `TG_SESSION` | sessão da conta dedicada do Telegram (gerada por `scripts/tg-login.js`) |
 | `TG_CHANNEL` | `+hash` do convite privado, ou `@username` se o canal for público |
@@ -87,8 +90,12 @@ ou 24h sem mensagem nova do canal. O `/health` mostra o bloco `telegram`, com
 ## Aviso por cupom
 
 Com `CUPOM_WEBHOOK_URL` definido, cada mensagem encaminhada ao ml-ofertas dispara um POST
-com `{ evento: 'cupom', canal, msg_id, codigos, validade, texto, at }`. Duplicadas não
+com `{ evento: 'cupom', resumo, canal, msg_id, codigos, validade, texto, at }`. Duplicadas não
 avisam. A falha do webhook só gera log e não afeta o envio.
+
+Com `SMTP_HOST` e `AVISO_EMAIL_PARA` definidos, cada cupom novo (mensagem com código e recente) gera
+um e-mail: "Novo cupom capturado: ML10. Válido até 21.10. Pego no canal WhatsApp." O histórico lido
+no boot não dispara e-mail, por causa de `AVISO_MAX_IDADE_MIN`.
 
 ## Parear (1ª vez)
 
