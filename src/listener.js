@@ -12,6 +12,9 @@ const {
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
   DisconnectReason,
+  proto,
+  getBinaryNodeChild,
+  getBinaryNodeChildren,
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const cfg = require('./config');
@@ -67,12 +70,47 @@ async function handle(raw) {
   await processar({ msg_id: id, timestamp, texto, fonte: 'whatsapp' });
 }
 
+// Histórico do canal. O IQ antigo (<message_updates> endereçado ao JID do canal) nunca
+// é respondido pelo servidor (timeout de 60 s). O que o servidor responde é
+// <messages type=jid jid=.. count=..> endereçado a s.whatsapp.net (ver README).
+// Sem since/after: passar since=0 também dava timeout.
 async function buscar(count) {
-  // Sem since/after: passar since=0 fazia a query de newsletter dar "Timed Out".
-  const msgs = await sock.newsletterFetchMessages(status.channelJid, count);
-  const lista = Array.isArray(msgs) ? msgs : [];
-  for (const m of lista) await handle(m);
-  return lista.length;
+  const res = await sock.query({
+    tag: 'iq',
+    attrs: { id: sock.generateMessageTag(), type: 'get', xmlns: 'newsletter', to: 's.whatsapp.net' },
+    content: [{ tag: 'messages', attrs: { type: 'jid', jid: status.channelJid, count: String(count) } }],
+  });
+  const bloco = getBinaryNodeChild(res, 'messages');
+  if (!bloco) {
+    // Forma inesperada: registra um trecho da resposta pra ajustar o parser.
+    log.warn({ resposta: resumir(res) }, 'histórico do canal: resposta sem <messages>');
+    return 0;
+  }
+  const itens = getBinaryNodeChildren(bloco, 'message');
+  for (const item of itens) {
+    const plain = getBinaryNodeChild(item, 'plaintext');
+    if (!plain?.content) continue;
+    let message;
+    try {
+      // Mesmo decode que o Baileys usa nas notificações de canal (messages-recv.js).
+      const bytes = typeof plain.content === 'string' ? Buffer.from(plain.content, 'binary') : Buffer.from(plain.content);
+      message = proto.Message.decode(bytes);
+    } catch (e) {
+      log.warn({ e: e.message, id: item.attrs.server_id }, 'histórico: falha ao decodificar mensagem');
+      continue;
+    }
+    await handle({
+      key: { id: item.attrs.server_id || item.attrs.message_id },
+      message,
+      messageTimestamp: Number(item.attrs.t),
+    });
+  }
+  return itens.length;
+}
+
+// Trecho curto de um nó binário, pra log (bytes viram o tamanho).
+function resumir(node) {
+  return JSON.stringify(node, (_k, v) => (v instanceof Uint8Array ? `<${v.length} bytes>` : v)).slice(0, 1200);
 }
 
 // Devolve { ok, n | erro }. Usado pelo timer e pelo POST /poll (busca manual).

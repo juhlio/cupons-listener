@@ -109,6 +109,7 @@ forçar, apague o volume `/app/auth_state` e reinicie.
 - **WhatsApp: fora do ar para a captura de texto.** A conexão e a leitura do canal (`newsletterMetadata`) funcionam, mas a consulta de mensagens (`newsletterFetchMessages`) não recebe resposta do servidor: dá `Timed Out` em 60 s. O mesmo acontece com um pareamento novo, então não é a sessão. Não há consulta alternativa no Baileys 6.7.24 nem na RC 7.0. As notificações ao vivo do canal chegam sem texto (tag `live_updates`).
   - O último cupom entregue pelo WhatsApp foi em 16/10 às 19:11 BRT. Não dá para afirmar se a falha começou nesse dia.
   - Cada poll registra `whatsapp: poll ok` (com `n` e `ms`) ou `polling falhou`, para acompanhar se isso muda.
+  - Correção aplicada: o histórico agora é pedido com `<messages type=jid jid=.. count=..>` endereçado a `s.whatsapp.net` (o IQ antigo, endereçado ao canal, nunca era respondido). Origem: fork `yonatann/Baileys-1` PR #31, lido só como referência, sem instalar o fork. Se a resposta vier em outro formato, o log `histórico do canal: resposta sem <messages>` mostra um trecho para ajustar o parser.
   - O alerta de silêncio do WhatsApp está desligado (`checarAlertas(..., { silencio: false })`), porque não há ação possível enquanto a fonte estiver bloqueada. O alerta de desconexão continua ativo.
 
 ## Riscos
